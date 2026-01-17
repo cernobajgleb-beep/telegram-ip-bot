@@ -1,3 +1,5 @@
+# Telegram IP Bot v2.0
+# Этот бот показывает информацию об IP-адресах
 import os
 import logging
 from telegram import Update
