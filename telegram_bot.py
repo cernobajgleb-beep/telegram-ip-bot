@@ -55,19 +55,20 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(help_text)
 
 def get_ip_info(ip_address):
-    """Функция для получения информации об IP"""
     try:
-        # Формируем URL с нужными полями
         if ip_address:
-            url = f'http://ip-api.com/json/{ip_address}?fields=status,message,query,country,regionName,city,isp,org,lat,lon,timezone'
+            url = f'http://ip-api.com/json/{ip_address}'
         else:
-            url = 'http://ip-api.com/json/?fields=status,message,query,country,regionName,city,isp,org,lat,lon,timezone'
+            url = 'http://ip-api.com/json/'
         
         response = requests.get(url, timeout=10)
-        response.raise_for_status()  # Проверяем HTTP ошибки
         
+        # Проверяем, что ответ не пустой
+        if not response.text.strip():
+            return "❌ Сервис IP-информации вернул пустой ответ"
+            
         data = response.json()
-
+        
         if data.get('status') == 'success':
             info = f"""
 📍 *Информация об IP-адресе:*
