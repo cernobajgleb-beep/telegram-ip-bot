@@ -57,40 +57,44 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def get_ip_info(ip_address):
     """Функция для получения информации об IP"""
     try:
-        if not ip_address or ip_address == '':
-            # Получаем внешний IP пользователя
-            response = requests.get('https://api.ipify.org?format=json', timeout=10)
-            ip_address = response.json()['ip']
+        # Формируем URL с нужными полями
+        if ip_address:
+            url = f'http://ip-api.com/json/{ip_address}?fields=status,message,query,country,regionName,city,isp,org,lat,lon,timezone'
+        else:
+            url = 'http://ip-api.com/json/?fields=status,message,query,country,regionName,city,isp,org,lat,lon,timezone'
         
-        # Используем ipapi.co
-        response = requests.get(f'https://ipapi.co/{ip_address}/json/', timeout=10)
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()  # Проверяем HTTP ошибки
+        
         data = response.json()
-        
-        if 'error' not in data:
+
+        if data.get('status') == 'success':
             info = f"""
 📍 *Информация об IP-адресе:*
 
-• 🆔 *IP:* `{data.get('ip', 'N/A')}`
-• 🏳️ *Страна:* {data.get('country_name', 'N/A')}
-• 📍 *Регион:* {data.get('region', 'N/A')}
+• 🆔 *IP:* `{data.get('query', 'N/A')}`
+• 🏳️ *Страна:* {data.get('country', 'N/A')}
+• 📍 *Регион:* {data.get('regionName', 'N/A')}
 • 🏙️ *Город:* {data.get('city', 'N/A')}
-• 📡 *Провайдер:* {data.get('org', 'N/A')}
+• 📡 *Провайдер:* {data.get('isp', 'N/A')}
 • 🌐 *Организация:* {data.get('org', 'N/A')}
-• 📍 *Координаты:* {data.get('latitude', 'N/A')}, {data.get('longitude', 'N/A')}
+• 📍 *Координаты:* {data.get('lat', 'N/A')}, {data.get('lon', 'N/A')}
 • 🕐 *Часовой пояс:* {data.get('timezone', 'N/A')}
             """
             return info
         else:
-            return f"❌ Ошибка: Не удалось получить информацию об IP {ip_address}"
-            
-    except requests.exceptions.ConnectionError:
-        return "❌ Ошибка соединения. Пожалуйста, проверьте подключение к интернету."
-    except requests.exceptions.Timeout:
-        return "⏰ Таймаут запроса. Сервер не ответил вовремя."
+            error_msg = data.get('message', 'Неизвестная ошибка')
+            return f"❌ Ошибка: {error_msg}\nПроверьте правильность IP-адреса."
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Request error: {e}")
+        return f"❌ Ошибка соединения: {str(e)}"
+    except ValueError as e:
+        logger.error(f"JSON decode error: {e}")
+        return "❌ Ошибка обработки данных от сервиса IP."
     except Exception as e:
         logger.error(f"Error getting IP info: {e}")
         return f"⚠️ Произошла ошибка: {str(e)}"
-
 async def ip_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик команды /ip"""
     # Если IP передан как аргумент команды
