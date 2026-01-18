@@ -55,38 +55,43 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(help_text)
 
 def get_ip_info(ip_address):
+    """Функция для получения информации об IP"""
     try:
+        # Используем ipinfo.io (бесплатно 50k запросов/месяц)
         if ip_address:
-            url = f'http://ip-api.com/json/{ip_address}'
+            url = f'https://ipinfo.io/{ip_address}/json'
         else:
-            url = 'http://ip-api.com/json/'
+            url = 'https://ipinfo.io/json'
         
-        response = requests.get(url, timeout=10)
+        headers = {
+            'User-Agent': 'Telegram-IP-Bot/1.0'
+        }
         
-        # Проверяем, что ответ не пустой
-        if not response.text.strip():
-            return "❌ Сервис IP-информации вернул пустой ответ"
-            
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        
         data = response.json()
         
-        if data.get('status') == 'success':
-            info = f"""
+        # Форматируем ответ
+        ip = data.get('ip', 'N/A')
+        city = data.get('city', 'N/A')
+        region = data.get('region', 'N/A')
+        country = data.get('country', 'N/A')
+        org = data.get('org', 'N/A')
+        loc = data.get('loc', 'N/A')  # координаты
+        
+        info = f"""
 📍 *Информация об IP-адресе:*
 
-• 🆔 *IP:* `{data.get('query', 'N/A')}`
-• 🏳️ *Страна:* {data.get('country', 'N/A')}
-• 📍 *Регион:* {data.get('regionName', 'N/A')}
-• 🏙️ *Город:* {data.get('city', 'N/A')}
-• 📡 *Провайдер:* {data.get('isp', 'N/A')}
-• 🌐 *Организация:* {data.get('org', 'N/A')}
-• 📍 *Координаты:* {data.get('lat', 'N/A')}, {data.get('lon', 'N/A')}
-• 🕐 *Часовой пояс:* {data.get('timezone', 'N/A')}
-            """
-            return info
-        else:
-            error_msg = data.get('message', 'Неизвестная ошибка')
-            return f"❌ Ошибка: {error_msg}\nПроверьте правильность IP-адреса."
-
+• 🆔 *IP:* `{ip}`
+• 🏳️ *Страна:* {country}
+• 📍 *Регион:* {region}
+• 🏙️ *Город:* {city}
+• 📡 *Провайдер/Организация:* {org}
+• 📍 *Координаты:* {loc}
+        """
+        return info
+        
     except requests.exceptions.RequestException as e:
         logger.error(f"Request error: {e}")
         return f"❌ Ошибка соединения: {str(e)}"
@@ -96,6 +101,7 @@ def get_ip_info(ip_address):
     except Exception as e:
         logger.error(f"Error getting IP info: {e}")
         return f"⚠️ Произошла ошибка: {str(e)}"
+        
 async def ip_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик команды /ip"""
     # Если IP передан как аргумент команды
